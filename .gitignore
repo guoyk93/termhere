@@ -22,3 +22,7 @@ go.work
 
 # GoLand
 .idea/
+
+# dist
+dist/
+build/
