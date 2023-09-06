@@ -2,12 +2,15 @@ package termhere
 
 import (
 	"encoding/gob"
+	"fmt"
 	"github.com/creack/pty"
 	"github.com/guoyk93/rg"
 	"github.com/guoyk93/termhere/thdone"
 	"github.com/guoyk93/termhere/thwire"
+	"io"
 	"log"
 	"net"
+	"os"
 	"os/exec"
 	"slices"
 	"strings"
@@ -36,11 +39,12 @@ func RunClient(opts ClientOptions) (err error) {
 	gw := gob.NewEncoder(conn)
 
 	// send auth frame
-	var af thwire.Frame
+	af := thwire.Frame{}
 	rg.Must0(thwire.CreateAuthFrame(&af, opts.Token))
 	rg.Must0(gw.Encode(af))
 
 	// read auth frame
+	af = thwire.Frame{}
 	rg.Must0(gr.Decode(&af))
 	rg.Must0(thwire.ValidateAuthFrame(af, opts.Token))
 
@@ -50,6 +54,23 @@ func RunClient(opts ClientOptions) (err error) {
 
 	// command
 	cmd := exec.Command(opts.Command[0], opts.Command[1:]...)
+	cmd.Env = os.Environ()
+	for k, v := range af.Auth.Env {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	defer func() {
+		if s := cmd.ProcessState; s != nil {
+			log.Println("command exited:", s.String())
+			_ = gw.Encode(thwire.Frame{
+				Kind: thwire.KindExit,
+				Exit: thwire.FrameExit{
+					Code:    s.ExitCode(),
+					Message: []byte(s.String()),
+				},
+			})
+		}
+	}()
 
 	// start pty
 	pt := rg.Must(pty.Start(cmd))
@@ -67,8 +88,9 @@ func RunClient(opts ClientOptions) (err error) {
 		for {
 			var f thwire.Frame
 			if err := gr.Decode(&f); err != nil {
-				log.Println("read frame error:", err)
-				done.Close()
+				if done.Close() {
+					log.Println("read frame error:", err)
+				}
 				return
 			}
 			select {
@@ -85,8 +107,9 @@ func RunClient(opts ClientOptions) (err error) {
 			select {
 			case f := <-chOutgoing:
 				if err := gw.Encode(f); err != nil {
-					log.Println("write frame error:", err)
-					done.Close()
+					if done.Close() {
+						log.Println("write frame error:", err)
+					}
 					return
 				}
 			case <-done.C:
@@ -101,8 +124,13 @@ func RunClient(opts ClientOptions) (err error) {
 		for {
 			n, err := pt.Read(buf)
 			if err != nil {
-				log.Println("read pty error:", err)
-				done.Close()
+				if done.Close() {
+					if err == io.EOF {
+						log.Println("command exited")
+					} else {
+						log.Println("read pty error:", err)
+					}
+				}
 				return
 			}
 			f := thwire.Frame{
@@ -148,15 +176,22 @@ func RunClient(opts ClientOptions) (err error) {
 				}
 			case thwire.KindStdin:
 				if _, err = pt.Write(f.Data); err != nil {
-					log.Println("write stdin error:", err)
-					done.Close()
+					if done.Close() {
+						log.Println("write stdin error:", err)
+					}
 				}
 			case thwire.KindStdout, thwire.KindStderr:
-				log.Println("invalid server frame:", f.Kind.String())
-				done.Close()
-			case thwire.KindError:
-				log.Println("server error:", string(f.Data))
-				done.Close()
+				if done.Close() {
+					log.Println("invalid server frame:", f.Kind.String())
+				}
+			case thwire.KindExit:
+				if done.Close() {
+					if f.Exit.Code == 0 {
+						log.Println("server exited:", string(f.Exit.Message))
+					} else {
+						log.Println("server error:", string(f.Exit.Message))
+					}
+				}
 			case thwire.KindResize:
 				_ = pty.Setsize(pt, &pty.Winsize{
 					Rows: f.Resize.Rows,

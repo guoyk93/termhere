@@ -8,6 +8,7 @@ import (
 	"github.com/guoyk93/termhere/thdone"
 	"github.com/guoyk93/termhere/thwire"
 	"golang.org/x/term"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -58,6 +59,18 @@ func serverUnoccupy() {
 	occupied = false
 }
 
+func serverExposeEnv() map[string]string {
+	env := map[string]string{}
+	for _, key := range []string{
+		"TERM",
+	} {
+		if val := os.Getenv(key); val != "" {
+			env[key] = val
+		}
+	}
+	return env
+}
+
 func serverHandleConnection(conn net.Conn, token string) {
 	defer conn.Close()
 
@@ -67,27 +80,30 @@ func serverHandleConnection(conn net.Conn, token string) {
 	gw := gob.NewEncoder(conn)
 
 	defer func() {
-		if err == nil {
-			return
+		f := thwire.Frame{Kind: thwire.KindExit}
+		if err != nil {
+			f.Exit.Code = 1
+			f.Exit.Message = []byte(err.Error())
+			log.Println("error:", err)
 		}
-		log.Println("error:", err)
-		f := thwire.Frame{Kind: thwire.KindError, Data: []byte(err.Error())}
 		_ = gw.Encode(f)
 	}()
 	rg.Guard(&err)
 
-	log.Println("authenticating")
+	log.Println("client authenticating")
 
 	// read auth frame
-	var af thwire.Frame
+	af := thwire.Frame{}
 	rg.Must0(gr.Decode(&af))
 	rg.Must0(thwire.ValidateAuthFrame(af, token))
 
 	// send auth frame
+	af = thwire.Frame{}
+	af.Auth.Env = serverExposeEnv()
 	rg.Must0(thwire.CreateAuthFrame(&af, token))
 	rg.Must0(gw.Encode(af))
 
-	log.Println("authenticated")
+	log.Println("client authenticated")
 
 	if !serverOccupy() {
 		log.Println("occupied")
@@ -154,8 +170,14 @@ func serverHandleConnection(conn net.Conn, token string) {
 		for {
 			var f thwire.Frame
 			if err := gr.Decode(&f); err != nil {
-				log.Println("read frame error:", err)
-				done.Close()
+				if done.Close() {
+					if err == io.EOF {
+						err = nil
+						log.Println("client exited")
+					} else {
+						log.Println("read frame error:", err)
+					}
+				}
 				return
 			}
 			select {
@@ -172,8 +194,9 @@ func serverHandleConnection(conn net.Conn, token string) {
 			select {
 			case f := <-chOutgoing:
 				if err := gw.Encode(f); err != nil {
-					log.Println("write frame error:", err)
-					done.Close()
+					if done.Close() {
+						log.Println("write frame error:", err)
+					}
 					return
 				}
 			case <-done.C:
@@ -188,8 +211,9 @@ func serverHandleConnection(conn net.Conn, token string) {
 		for {
 			n, err := os.Stdin.Read(buf)
 			if err != nil {
-				log.Println("read stdin error:", err)
-				done.Close()
+				if done.Close() {
+					log.Println("read stdin error:", err)
+				}
 				return
 			}
 			f := thwire.Frame{
@@ -226,6 +250,11 @@ func serverHandleConnection(conn net.Conn, token string) {
 	oldState := rg.Must(term.MakeRaw(int(os.Stdin.Fd())))
 	defer term.Restore(int(os.Stdin.Fd()), oldState)
 
+	oldStateOut := rg.Must(term.MakeRaw(int(os.Stdout.Fd())))
+	defer term.Restore(int(os.Stdout.Fd()), oldStateOut)
+
+	chSig <- syscall.SIGWINCH
+
 	for {
 		select {
 		case f := <-chIncoming:
@@ -233,12 +262,13 @@ func serverHandleConnection(conn net.Conn, token string) {
 			case thwire.KindIdle:
 				// ignore idle
 			case thwire.KindSignal, thwire.KindStdin, thwire.KindResize:
-				log.Println("invalid client frame:", f.Kind.String())
-				done.Close()
+				if done.Close() {
+					log.Println("invalid client frame:", f.Kind.String())
+				}
 			case thwire.KindStdout, thwire.KindStderr:
 				_, _ = os.Stdout.Write(f.Data)
-			case thwire.KindError:
-				log.Println("client error:", string(f.Data))
+			case thwire.KindExit:
+				log.Println("client exited:", f.Exit.Code, string(f.Exit.Message))
 				done.Close()
 			}
 		case <-done.C:

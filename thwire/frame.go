@@ -12,7 +12,7 @@ const (
 	KindStdin
 	KindStdout
 	KindStderr // not used
-	KindError
+	KindExit
 	KindIdle
 	KindSignal
 	KindResize
@@ -24,7 +24,7 @@ func (k Kind) String() string {
 		KindStdin:  "stdin",
 		KindStdout: "stdout",
 		KindStderr: "stderr",
-		KindError:  "error",
+		KindExit:   "exit",
 		KindIdle:   "idle",
 		KindSignal: "signal",
 		KindResize: "resize",
@@ -43,6 +43,7 @@ type FrameAuth struct {
 	Epoch     uint64
 	Nonce     uint64
 	Signature []byte
+	Env       map[string]string
 }
 
 // FrameResize is a signal sent over the wire.
@@ -58,6 +59,11 @@ type FrameSignal struct {
 	Number int
 }
 
+type FrameExit struct {
+	Code    int
+	Message []byte
+}
+
 // Frame is a single message sent over the wire.
 type Frame struct {
 	Kind Kind
@@ -65,6 +71,7 @@ type Frame struct {
 	Auth   FrameAuth
 	Signal FrameSignal
 	Resize FrameResize
+	Exit   FrameExit
 
 	Data []byte
 }
