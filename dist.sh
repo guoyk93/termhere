@@ -19,3 +19,8 @@ build linux arm64
 build linux amd64
 build linux loong64
 build linux riscv64
+
+cd dist
+
+shasum -a 256 *.tar.gz > SHASUM256.txt
+gpg-trezor-hi@guoyk.xyz -ab SHASUM256.txt
