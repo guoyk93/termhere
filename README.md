@@ -1,2 +1,7 @@
 # termhere
-a simple reverse shell with web ui
+
+A Simple Reverse Shell Tunnel
+
+## Credits
+
+GUO YANKE, MIT License
