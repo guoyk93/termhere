@@ -1,9 +1,10 @@
 module github.com/guoyk93/termhere
 
-go 1.21.0
+go 1.21.1
 
 require (
 	github.com/creack/pty v1.1.18
+	github.com/guoyk93/goyk v0.0.0-20230913163453-b1ceee3576a9
 	github.com/guoyk93/rg v1.0.0
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli/v2 v2.25.7

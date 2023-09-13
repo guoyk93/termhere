@@ -3,11 +3,6 @@ package termhere
 import (
 	"encoding/gob"
 	"errors"
-	"github.com/creack/pty"
-	"github.com/guoyk93/rg"
-	"github.com/guoyk93/termhere/thdone"
-	"github.com/guoyk93/termhere/thwire"
-	"golang.org/x/term"
 	"io"
 	"log"
 	"net"
@@ -17,6 +12,12 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/creack/pty"
+	"github.com/guoyk93/goyk/chdone"
+	"github.com/guoyk93/rg"
+	"github.com/guoyk93/termhere/thwire"
+	"golang.org/x/term"
 )
 
 type ServerOptions struct {
@@ -117,7 +118,7 @@ func serverHandleConnection(conn net.Conn, token string) {
 		chOutgoing = make(chan thwire.Frame)
 		chIncoming = make(chan thwire.Frame)
 
-		done = thdone.New()
+		done = chdone.New()
 	)
 
 	signal.Notify(chSig, syscall.SIGWINCH, syscall.SIGINT, syscall.SIGTERM)
@@ -170,7 +171,7 @@ func serverHandleConnection(conn net.Conn, token string) {
 		for {
 			var f thwire.Frame
 			if err := gr.Decode(&f); err != nil {
-				if done.Close() {
+				if done.TryClose() {
 					if err == io.EOF {
 						err = nil
 						log.Println("client exited")
@@ -194,7 +195,7 @@ func serverHandleConnection(conn net.Conn, token string) {
 			select {
 			case f := <-chOutgoing:
 				if err := gw.Encode(f); err != nil {
-					if done.Close() {
+					if done.TryClose() {
 						log.Println("write frame error:", err)
 					}
 					return
@@ -211,7 +212,7 @@ func serverHandleConnection(conn net.Conn, token string) {
 		for {
 			n, err := os.Stdin.Read(buf)
 			if err != nil {
-				if done.Close() {
+				if done.TryClose() {
 					log.Println("read stdin error:", err)
 				}
 				return
@@ -262,14 +263,14 @@ func serverHandleConnection(conn net.Conn, token string) {
 			case thwire.KindIdle:
 				// ignore idle
 			case thwire.KindSignal, thwire.KindStdin, thwire.KindResize:
-				if done.Close() {
+				if done.TryClose() {
 					log.Println("invalid client frame:", f.Kind.String())
 				}
 			case thwire.KindStdout, thwire.KindStderr:
 				_, _ = os.Stdout.Write(f.Data)
 			case thwire.KindExit:
 				log.Println("client exited:", f.Exit.Code, string(f.Exit.Message))
-				done.Close()
+				done.TryClose()
 			}
 		case <-done.C:
 			return

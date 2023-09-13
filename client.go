@@ -3,10 +3,6 @@ package termhere
 import (
 	"encoding/gob"
 	"fmt"
-	"github.com/creack/pty"
-	"github.com/guoyk93/rg"
-	"github.com/guoyk93/termhere/thdone"
-	"github.com/guoyk93/termhere/thwire"
 	"io"
 	"log"
 	"net"
@@ -16,6 +12,11 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/creack/pty"
+	"github.com/guoyk93/goyk/chdone"
+	"github.com/guoyk93/rg"
+	"github.com/guoyk93/termhere/thwire"
 )
 
 type ClientOptions struct {
@@ -80,7 +81,7 @@ func RunClient(opts ClientOptions) (err error) {
 		chIncoming = make(chan thwire.Frame)
 		chOutgoing = make(chan thwire.Frame)
 
-		done = thdone.New()
+		done = chdone.New()
 	)
 
 	// drain incoming frames
@@ -88,7 +89,7 @@ func RunClient(opts ClientOptions) (err error) {
 		for {
 			var f thwire.Frame
 			if err := gr.Decode(&f); err != nil {
-				if done.Close() {
+				if done.TryClose() {
 					log.Println("read frame error:", err)
 				}
 				return
@@ -107,7 +108,7 @@ func RunClient(opts ClientOptions) (err error) {
 			select {
 			case f := <-chOutgoing:
 				if err := gw.Encode(f); err != nil {
-					if done.Close() {
+					if done.TryClose() {
 						log.Println("write frame error:", err)
 					}
 					return
@@ -124,7 +125,7 @@ func RunClient(opts ClientOptions) (err error) {
 		for {
 			n, err := pt.Read(buf)
 			if err != nil {
-				if done.Close() {
+				if done.TryClose() {
 					if err == io.EOF {
 						log.Println("command exited")
 					} else {
@@ -176,16 +177,16 @@ func RunClient(opts ClientOptions) (err error) {
 				}
 			case thwire.KindStdin:
 				if _, err = pt.Write(f.Data); err != nil {
-					if done.Close() {
+					if done.TryClose() {
 						log.Println("write stdin error:", err)
 					}
 				}
 			case thwire.KindStdout, thwire.KindStderr:
-				if done.Close() {
+				if done.TryClose() {
 					log.Println("invalid server frame:", f.Kind.String())
 				}
 			case thwire.KindExit:
-				if done.Close() {
+				if done.TryClose() {
 					if f.Exit.Code == 0 {
 						log.Println("server exited:", string(f.Exit.Message))
 					} else {
