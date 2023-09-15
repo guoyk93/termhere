@@ -102,7 +102,7 @@ func serverHandleConnection(conn net.Conn, token string) {
 		}
 		_ = gw.Encode(f)
 	}()
-	rg.Guard(&err)
+	defer rg.Guard(&err)
 
 	log.Println("client authenticating")
 
