@@ -26,8 +26,9 @@ type ServerOptions struct {
 	Token  string
 	Listen string
 
-	CertFile string
-	KeyFile  string
+	ClientCAFile string
+	CertFile     string
+	KeyFile      string
 }
 
 func RunServer(opts ServerOptions) (err error) {
@@ -37,8 +38,9 @@ func RunServer(opts ServerOptions) (err error) {
 
 	var cfg uniconn.ListenConfig
 	if cfg, err = uniconn.ParseListenURI(opts.Listen, map[string]string{
-		uniconn.OptionCertFile: opts.CertFile,
-		uniconn.OptionKeyFile:  opts.KeyFile,
+		uniconn.OptionCertFile:     opts.CertFile,
+		uniconn.OptionKeyFile:      opts.KeyFile,
+		uniconn.OptionClientCAFile: opts.ClientCAFile,
 	}); err != nil {
 		return
 	}

@@ -22,6 +22,31 @@ A simple reverse shell tunnel with pty support (window size, ctrl-c, ctrl-d, etc
 
 Now you can get a shell of **Machine 2** from the `termhere server` running in **Machine 1**
 
+## TLS Support
+
+`termhere` supports TLS with client authentication, you can use `--cert-file` and `--key-file` to enable TLS, and
+use `--client-ca-file` to enable client authentication.
+
+**TLS Simple**
+
+```shell
+# server
+termhere server -l 'tcp+tls://:7777' --cert-file server.full-crt.pem --key-file server.key.pem
+# client
+termhere client -s "tcp+tls://127.0.0.1:7777" --ca-file rootca.crt.pem
+```
+
+**TLS with Client Auth**
+
+```shell
+# server
+termhere server -l 'tcp+tls://:7777' --cert-file server.full-crt.pem --key-file server.key.pem --client-ca-file rootca.crt.pem
+# client
+termhere client -s "tcp+tls://127.0.0.1:7777" --ca-file rootca.crt.pem --cert-file client.full-crt.pem --key-file client.key.pem
+```
+
+Fore more information about **TLS Support**, please refer to [uniconn](https://github.com/guoyk93/uniconn)
+
 ## Credits
 
 GUO YANKE, MIT License

@@ -25,6 +25,8 @@ type ClientOptions struct {
 	Server   string
 	Command  []string
 	CAFile   string
+	CertFile string
+	KeyFile  string
 	Insecure bool
 }
 
@@ -36,6 +38,8 @@ func RunClient(opts ClientOptions) (err error) {
 	var cfg uniconn.DialConfig
 	if cfg, err = uniconn.ParseDialURI(opts.Server, map[string]string{
 		uniconn.OptionCAFile:   opts.CAFile,
+		uniconn.OptionCertFile: opts.CertFile,
+		uniconn.OptionKeyFile:  opts.KeyFile,
 		uniconn.OptionInsecure: fmt.Sprintf("%v", opts.Insecure),
 	}); err != nil {
 		return

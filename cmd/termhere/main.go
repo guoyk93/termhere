@@ -30,7 +30,7 @@ func main() {
 	app.Commands = []*cli.Command{
 		{
 			Name:    "server",
-			Usage:   "run as server",
+			Usage:   "run as a server, i.e. the remote controller",
 			Aliases: []string{"s"},
 			Flags: []cli.Flag{
 				&cli.StringFlag{
@@ -47,6 +47,10 @@ func main() {
 					Name:  "key-file",
 					Usage: "tls certificate key file path",
 				},
+				&cli.StringFlag{
+					Name:  "client-ca-file",
+					Usage: "tls client ca file path, this enables TLS client auth",
+				},
 			},
 			Action: func(ctx *cli.Context) (err error) {
 				log.Println("running as server")
@@ -55,16 +59,17 @@ func main() {
 					return
 				}
 				return termhere.RunServer(termhere.ServerOptions{
-					Token:    token,
-					Listen:   ctx.String("listen"),
-					CertFile: ctx.String("cert-file"),
-					KeyFile:  ctx.String("key-file"),
+					Token:        token,
+					Listen:       ctx.String("listen"),
+					CertFile:     ctx.String("cert-file"),
+					KeyFile:      ctx.String("key-file"),
+					ClientCAFile: ctx.String("client-ca-file"),
 				})
 			},
 		},
 		{
 			Name:    "client",
-			Usage:   "run as client",
+			Usage:   "run as a client, i.e. the command executor",
 			Aliases: []string{"c"},
 			Flags: []cli.Flag{
 				&cli.StringFlag{
@@ -76,7 +81,15 @@ func main() {
 				},
 				&cli.StringFlag{
 					Name:  "ca-file",
-					Usage: "TLS ca file for server",
+					Usage: "tls ca file for server",
+				},
+				&cli.StringFlag{
+					Name:  "cert-file",
+					Usage: "tls certificate file path for client",
+				},
+				&cli.StringFlag{
+					Name:  "key-file",
+					Usage: "tls certificate key file path for client",
 				},
 				&cli.BoolFlag{
 					Name:    "insecure",
@@ -104,6 +117,8 @@ func main() {
 					Server:   ctx.String("server"),
 					Command:  command,
 					CAFile:   ctx.String("ca-file"),
+					CertFile: ctx.String("cert-file"),
+					KeyFile:  ctx.String("key-file"),
 					Insecure: ctx.Bool("insecure"),
 				})
 			},
