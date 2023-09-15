@@ -1,11 +1,12 @@
 package termhere
 
 import (
+	"context"
 	"encoding/gob"
 	"fmt"
+	"github.com/guoyk93/uniconn"
 	"io"
 	"log"
-	"net"
 	"os"
 	"os/exec"
 	"slices"
@@ -20,9 +21,13 @@ import (
 )
 
 type ClientOptions struct {
-	Token   string
-	Server  string
-	Command []string
+	Token    string
+	Server   string
+	Command  []string
+	CAFile   string
+	CertFile string
+	KeyFile  string
+	Insecure bool
 }
 
 func RunClient(opts ClientOptions) (err error) {
@@ -30,7 +35,17 @@ func RunClient(opts ClientOptions) (err error) {
 
 	log.Println("connecting to:", opts.Server)
 
-	conn := rg.Must(net.Dial("tcp", opts.Server))
+	var cfg uniconn.DialConfig
+	if cfg, err = uniconn.ParseDialURI(opts.Server, map[string]string{
+		uniconn.OptionCAFile:   opts.CAFile,
+		uniconn.OptionCertFile: opts.CertFile,
+		uniconn.OptionKeyFile:  opts.KeyFile,
+		uniconn.OptionInsecure: fmt.Sprintf("%v", opts.Insecure),
+	}); err != nil {
+		return
+	}
+
+	conn := rg.Must(cfg.Dial(context.Background()))
 	defer conn.Close()
 
 	log.Println("authenticating")

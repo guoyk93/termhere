@@ -1,8 +1,10 @@
 package termhere
 
 import (
+	"context"
 	"encoding/gob"
 	"errors"
+	"github.com/guoyk93/uniconn"
 	"io"
 	"log"
 	"net"
@@ -23,6 +25,10 @@ import (
 type ServerOptions struct {
 	Token  string
 	Listen string
+
+	ClientCAFile string
+	CertFile     string
+	KeyFile      string
 }
 
 func RunServer(opts ServerOptions) (err error) {
@@ -30,7 +36,16 @@ func RunServer(opts ServerOptions) (err error) {
 
 	log.Println("listening on:", opts.Listen)
 
-	lis := rg.Must(net.Listen("tcp", opts.Listen))
+	var cfg uniconn.ListenConfig
+	if cfg, err = uniconn.ParseListenURI(opts.Listen, map[string]string{
+		uniconn.OptionCertFile:     opts.CertFile,
+		uniconn.OptionKeyFile:      opts.KeyFile,
+		uniconn.OptionClientCAFile: opts.ClientCAFile,
+	}); err != nil {
+		return
+	}
+
+	lis := rg.Must(cfg.Listen(context.Background()))
 	defer lis.Close()
 
 	for {
@@ -89,7 +104,7 @@ func serverHandleConnection(conn net.Conn, token string) {
 		}
 		_ = gw.Encode(f)
 	}()
-	rg.Guard(&err)
+	defer rg.Guard(&err)
 
 	log.Println("client authenticating")
 
