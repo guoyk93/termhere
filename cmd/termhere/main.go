@@ -39,6 +39,14 @@ func main() {
 					Aliases: []string{"l"},
 					Value:   ":7777",
 				},
+				&cli.StringFlag{
+					Name:  "cert-file",
+					Usage: "tls certificate file path",
+				},
+				&cli.StringFlag{
+					Name:  "key-file",
+					Usage: "tls certificate key file path",
+				},
 			},
 			Action: func(ctx *cli.Context) (err error) {
 				log.Println("running as server")
@@ -47,8 +55,10 @@ func main() {
 					return
 				}
 				return termhere.RunServer(termhere.ServerOptions{
-					Token:  token,
-					Listen: ctx.String("listen"),
+					Token:    token,
+					Listen:   ctx.String("listen"),
+					CertFile: ctx.String("cert-file"),
+					KeyFile:  ctx.String("key-file"),
 				})
 			},
 		},
@@ -63,6 +73,15 @@ func main() {
 					Aliases:  []string{"s"},
 					Value:    "",
 					Required: true,
+				},
+				&cli.StringFlag{
+					Name:  "ca-file",
+					Usage: "TLS ca file for server",
+				},
+				&cli.BoolFlag{
+					Name:    "insecure",
+					Usage:   "skip tls verification",
+					Aliases: []string{"k"},
 				},
 			},
 			Action: func(ctx *cli.Context) (err error) {
@@ -81,9 +100,11 @@ func main() {
 					}
 				}
 				return termhere.RunClient(termhere.ClientOptions{
-					Token:   token,
-					Server:  ctx.String("server"),
-					Command: command,
+					Token:    token,
+					Server:   ctx.String("server"),
+					Command:  command,
+					CAFile:   ctx.String("ca-file"),
+					Insecure: ctx.Bool("insecure"),
 				})
 			},
 		},

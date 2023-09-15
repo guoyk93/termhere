@@ -6,19 +6,22 @@ cd "$(dirname "${0}")"
 
 rm -rf dist && mkdir dist
 
+EXECUTABLE_NAME="termhere"
+
 build() {
   rm -rf build && mkdir build
-  GOOS=${1} GOARCH=${2} go build -o build/termhere ./cmd/termhere
-  tar -czvf "dist/termhere-${1}-${2}.tar.gz" --exclude ".*" -C build termhere
+  GOOS=${1} GOARCH=${2} go build -o "build/${EXECUTABLE_NAME}${3}" ./cmd/${EXECUTABLE_NAME}
+  tar -czvf "dist/${EXECUTABLE_NAME}-${1}-${2}.tar.gz" --exclude ".*" -C build "${EXECUTABLE_NAME}${3}"
   rm -rf build
 }
 
-build darwin arm64
-build darwin amd64
-build linux arm64
-build linux amd64
-build linux loong64
-build linux riscv64
+build linux amd64 ""
+build darwin amd64 ""
+build darwin arm64 ""
+
+build linux arm64 ""
+build linux loong64 ""
+build freebsd amd64 ""
 
 cd dist
 
