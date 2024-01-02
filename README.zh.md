@@ -4,7 +4,7 @@
 
 ## 使用方法
 
-1. 从 [GitHub Releases](https://github.com/guoyk93/termhere/releases) 获取二进制文件 `termhere`
+1. 从 [GitHub Releases](https://github.com/yankeguo/termhere/releases) 获取二进制文件 `termhere`
 
 2. 在 **控制机** 上启动 `termhere server`，这会监听一个端口
 
@@ -44,11 +44,7 @@ termhere server -l 'tcp+tls://:7777' --cert-file server.full-crt.pem --key-file 
 termhere client -s "tcp+tls://127.0.0.1:7777" --ca-file rootca.crt.pem --cert-file client.full-crt.pem --key-file client.key.pem
 ```
 
-更多参数可以查阅 [uniconn](https://github.com/guoyk93/uniconn) 文档
-
-## 捐赠
-
-查看 https://guoyk.net/donation
+更多参数可以查阅 [uniconn](https://github.com/yankeguo/uniconn) 文档
 
 ## 许可证
 

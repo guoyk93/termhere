@@ -4,7 +4,7 @@ A simple reverse shell tunnel with pty support (window size, ctrl-c, ctrl-d, etc
 
 ## Usage
 
-1. Get the binary `termhere` from [GitHub Releases](https://github.com/guoyk93/termhere/releases)
+1. Get the binary `termhere` from [GitHub Releases](https://github.com/yankeguo/termhere/releases)
 
 2. Start `termhere server` in **Machine 1**
 
@@ -45,11 +45,7 @@ termhere server -l 'tcp+tls://:7777' --cert-file server.full-crt.pem --key-file 
 termhere client -s "tcp+tls://127.0.0.1:7777" --ca-file rootca.crt.pem --cert-file client.full-crt.pem --key-file client.key.pem
 ```
 
-Fore more information about **TLS Support**, please refer to [uniconn](https://github.com/guoyk93/uniconn)
-
-## 捐赠
-
-View https://guoyk.xyz/donation
+Fore more information about **TLS Support**, please refer to [uniconn](https://github.com/yankeguo/uniconn)
 
 ## Credits
 

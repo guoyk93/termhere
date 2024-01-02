@@ -2,8 +2,8 @@ package main
 
 import (
 	"errors"
-	"github.com/guoyk93/termhere"
 	"github.com/urfave/cli/v2"
+	"github.com/yankeguo/termhere"
 	"log"
 	"os"
 	"strings"

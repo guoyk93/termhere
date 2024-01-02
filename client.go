@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/gob"
 	"fmt"
-	"github.com/guoyk93/uniconn"
 	"io"
 	"log"
 	"os"
@@ -14,10 +13,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/yankeguo/uniconn"
+
 	"github.com/creack/pty"
-	"github.com/guoyk93/goyk/chdone"
-	"github.com/guoyk93/rg"
-	"github.com/guoyk93/termhere/thwire"
+	"github.com/yankeguo/rg"
+	"github.com/yankeguo/termhere/pkg/chdone"
+	"github.com/yankeguo/termhere/thwire"
 )
 
 type ClientOptions struct {
